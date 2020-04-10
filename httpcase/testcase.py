@@ -21,7 +21,6 @@ def add_test(httpobj):
                     case.assertEqual(str(ele1), str(ele2))
                 else:
                     raise Exception("不支持的断言：%s"%assert_exp)
-
     return test
 
 
@@ -45,6 +44,8 @@ class TestCase():
         testcase = type('HttpCase', (unittest.TestCase,), {})
         for index, httpsampler in enumerate(self.httpsamplers, start=1):
             test_method = add_test(httpsampler)
-            setattr(testcase, "test_%s" % (index), test_method)
+            setattr(test_method,"__doc__",httpsampler.name)
+            setattr(testcase, "test_%03d" % (index), test_method)
+        setattr(testcase,"__doc__", self.name)
         case = unittest.TestLoader().loadTestsFromTestCase(testcase)
         return case
