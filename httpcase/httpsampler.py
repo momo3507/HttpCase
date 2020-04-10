@@ -13,11 +13,13 @@ class HttpSampler():
         self.name = self.http_json.get("name","test step")
         self.method = self.http_json.get("method")
         self.path = self.http_json.get("path")
-        self.project_variables = {}
+        self.project_variables = {}     # 整个项目的全局变量表
+        self.testsuite_variables = {}   # 所属套件变量表
+        self.testcase_variables = {}     # 所属用例的变量表
         self.project_HttpRequestDefaults = {}
         self.project_HttpHeaderDefaults = {}
-        self.params = self.http_json.get("params",None)
-        self.body = self.http_json.get("body",None)
+        self.params = self.http_json.get("params", None)
+        self.body = self.http_json.get("body", None)
         self.json = None
         self.data = None
         if self.body:
@@ -25,10 +27,8 @@ class HttpSampler():
                 self.json = self.body
             else:
                 self.data = self.body
-
-    def addExtract(self, obj_extract):  # 提取器
-        self.extractor = obj_extract.extractjson
-        self.extract = {}
+        self.extract = self.http_json.get("extract", None)
+        self.assertion = self.http_json.get("assertion",[])
 
     def setSession(self, obj_session):
         self.session = obj_session
@@ -42,26 +42,29 @@ class HttpSampler():
             "port") else self.project_HttpRequestDefaults.get("port")
         self.url = "{protocol}://{ip}:{port}{path}".format(protocol=self.protocol,ip=self.ip,port=self.port,path=self.path)
 
-
     def run(self):
-        logging.info("------------running test step: %s" % self.name)
+        logging.info(">>> Running test step: %s" % self.name)
         self.genurl()
-        self.parselist = [Parse(property, self.project_variables) for property in [self.params,self.json]]  # 设置http对象的parselist属性
+        self.parselist = [Parse(property, self.testcase_variables,self.testsuite_variables,self.project_variables)
+                          for property in [self.params,self.json]]  # 设置http对象的parselist属性
         # self.parsekwargs = [Parse(self.kwargs[key], self.tgvariables, self.tpvariables)for key in self.kwargs.keys()]
         for parse in self.parselist:
             parse.run()
-        # for parse in self.parsekwargs:
-        #     parse.run()
-        logging.debug("Send Http('method':{method},'url':{url},'params':{params},'data':{data},'json':{json})".format(
-            method=self.method, url=self.url, params=self.params, data=self.data, json=self.json))
 
         if self.method == "GET":
-            self.res = self.session.get(url=self.url, params=self.params, headers=self.project_HttpHeaderDefaults)
+            self.response = self.session.get(url=self.url, params=self.params, headers=self.project_HttpHeaderDefaults)
         elif self.method == "POST":
-            self.res = self.session.post(self.url, params=self.params, data=self.data, json=self.json,
+            self.response = self.session.post(self.url, params=self.params, data=self.data, json=self.json,
                                          headers=self.project_HttpHeaderDefaults)
-        if hasattr(self, "extractor"):
-            logging.debug("running extractor: %s"%self.extractor)
-            for varname, path in self.extractor.items():
-                self.extract[varname] = JsonExtractor(self.res.json(), path).res
-            logging.debug("extract result：%s"%self.extract)
+        if self.extract:
+            logging.debug("running extractor: %s"%self.extract)
+            for varname, path in self.extract.items():
+                self.testcase_variables[varname] = JsonExtractor(self.response.json(), path).res
+            logging.debug("testcasr_variables：%s"%self.testcase_variables)
+        self.assertlist = [Parse(property, self.testcase_variables, self.testsuite_variables, self.project_variables)
+                          for property in self.assertion]  # 设置http对象的parselist属性
+        for assert_parse in self.assertlist:
+            assert_parse.run()
+
+
+        return self.response

@@ -23,15 +23,22 @@ class Parse:
     def var2value(self):
         if isinstance(self.parsejson,dict):
             for key,value in self.parsejson.items():
-                self.resOfParseValue = re.sub(P_VARIABLES,self.varInfindObj,value)
-                self.parsejson[key] = self.resOfParseValue
+                if isinstance(value,str):
+                    self.resOfParseValue = re.sub(P_VARIABLES,self.varInfindObj,value)
+                    self.parsejson[key] = self.resOfParseValue
+                elif isinstance(value,list):
+                    self.parselist = []
+                    for e in value:
+                        self.resOfParseValue = re.sub(P_VARIABLES, self.varInfindObj, str(e))
+                        self.parselist.append(self.resOfParseValue)
+                    self.parsejson[key] = self.parselist
 
 
     def varInfindObj(self,matched):
         self.varname = matched.group(1)
         for findObj in self.findObjs:
-            self.value = findObj.get(self.varname)
-            if self.value:
+            self.value = findObj.get(self.varname,None)
+            if str(self.value):
                 return str(self.value)
         else:
             #raise Exception("变量 %s 未定义"%self.varname)
@@ -40,8 +47,15 @@ class Parse:
     def fun2value(self):    # 解析函数并执行，需要先执行解析变量并执行
         if isinstance(self.parsejson,dict):
             for key,value in self.parsejson.items():
-                resOfParseValue = re.sub(P_FUNCTIONS,self.funInfindObj,value)
-                self.parsejson[key] = resOfParseValue
+                if isinstance(value,str):
+                    resOfParseValue = re.sub(P_FUNCTIONS,self.funInfindObj,value)
+                    self.parsejson[key] = resOfParseValue
+                elif isinstance(value,list):
+                    parselist = []
+                    for e in value:
+                        resOfParseValue = re.sub(P_FUNCTIONS, self.funInfindObj, str(e))
+                        parselist.append(resOfParseValue)
+                    self.parsejson[key] = parselist
 
     def funInfindObj(self,matched):
         self.funname = matched.group(1)
