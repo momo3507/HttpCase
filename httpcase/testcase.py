@@ -1,11 +1,8 @@
 # coding: utf-8
 
-import logging
 import requests
 import unittest
-
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s')
+from httpcase.logger import logger
 
 
 def add_test(httpobj):
@@ -19,6 +16,10 @@ def add_test(httpobj):
                     assert_value[1])
                 if assert_exp == "eq":
                     case.assertEqual(str(ele1), str(ele2))
+                elif assert_exp == "in":
+                    case.assertIn(str(ele1), str(ele2))
+                elif assert_exp == "not_in":
+                    case.assertNotIn(str(ele1),str(ele2))
                 else:
                     raise Exception("不支持的断言：%s"%assert_exp)
     return test
@@ -36,7 +37,7 @@ class TestCase():
         self.httpsamplers.append(obj_http)
 
     def run(self):
-        logging.info("--------running testcase: %s" % self.name)
+        logger.info("--------running testcase: %s" % self.name)
         for httpsampler in self.httpsamplers:
             httpsampler.run()
 

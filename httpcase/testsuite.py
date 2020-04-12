@@ -1,9 +1,7 @@
 # coding: utf-8
 
-import logging
 import unittest
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s')
+from httpcase.logger import logger
 
 class TestSuite():
     def __init__(self, testsuite_json):
@@ -16,14 +14,7 @@ class TestSuite():
     def addTestcase(self,obj_testcase):
         self.testcases.append(obj_testcase)
 
-
-    def run(self):
-        logging.info("--running testsuite: %s"%self.name)
-        for testcase in self.testcases:
-            testcase.run()
-
     def __call__(self):
-        # logging.debug("testsuite.__call__")
         suite = unittest.TestSuite()
         for testcase in self.testcases:
             suite.addTest(testcase)

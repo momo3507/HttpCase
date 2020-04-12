@@ -10,7 +10,6 @@ app = Flask(__name__)
 def login():
     username = request.json.get("username")
     password = request.json.get("password")
-    time.sleep(random.randint(1,5))
     return jsonify({"ret": 0, "user": username, "pwd": password, "msg": "成功","token":str(uuid.uuid4())})
 
 @app.route("/query",methods=["GET"])

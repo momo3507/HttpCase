@@ -1,5 +1,5 @@
 # HttpCase
-通过yaml定义测试用例
+通过yaml或json定义测试用例
 ## 使用说明：
 ```
 # coding: utf-8

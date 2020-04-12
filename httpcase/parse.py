@@ -3,61 +3,71 @@
 解析变量和函数
 """
 import re
-import logging
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s')
-
 from httpcase import functions
+from httpcase.logger import logger
 
-P_VARIABLES = r"\${(\w+)}"
-P_FUNCTIONS = r"\${(\w+)\((.*?)\)}"
+P_VARIABLES = r"\${(\w+)}"  # 变量正则
+P_FUNCTIONS = r"\${(\w+)\((.*?)\)}"     # 函数正则
+
+
 class Parse:
-    def __init__(self,parsejson,*findObjs):
-        self.parsejson = parsejson
+    def __init__(self, parse_obj, *findObjs):
+
+        self.parse_obj = parse_obj
         self.findObjs = findObjs
+        logger.debug(self.parse_obj)
+        logger.debug(self.findObjs)
+        self.run()
+        logger.debug(self.parse_obj)
 
     def run(self):
         self.var2value()
         self.fun2value()
 
     def var2value(self):
-        if isinstance(self.parsejson,dict):
-            for key,value in self.parsejson.items():
-                if isinstance(value,str):
-                    self.resOfParseValue = re.sub(P_VARIABLES,self.varInfindObj,value)
-                    self.parsejson[key] = self.resOfParseValue
-                elif isinstance(value,list):
+        if isinstance(self.parse_obj, dict):
+            for key, value in self.parse_obj.items():
+                if isinstance(value, str):
+                    self.resOfParseValue = re.sub(P_VARIABLES, self.varInfindObj, value)
+                    self.parse_obj[key] = self.resOfParseValue
+                elif isinstance(value, list):
                     self.parselist = []
                     for e in value:
                         self.resOfParseValue = re.sub(P_VARIABLES, self.varInfindObj, str(e))
                         self.parselist.append(self.resOfParseValue)
-                    self.parsejson[key] = self.parselist
+                    self.parse_obj[key] = self.parselist
+        elif isinstance(self.parse_obj,str):
+            self.resOfParseValue = re.sub(P_VARIABLES, self.varInfindObj, self.parse_obj)
+            self.parse_obj = self.resOfParseValue
 
 
-    def varInfindObj(self,matched):
+    def varInfindObj(self, matched):
         self.varname = matched.group(1)
         for findObj in self.findObjs:
-            self.value = findObj.get(self.varname,None)
-            if str(self.value):
+            self.value = findObj.get(self.varname, None)
+            if self.value is not None:
                 return str(self.value)
         else:
-            #raise Exception("变量 %s 未定义"%self.varname)
             return ""
 
-    def fun2value(self):    # 解析函数并执行，需要先执行解析变量并执行
-        if isinstance(self.parsejson,dict):
-            for key,value in self.parsejson.items():
-                if isinstance(value,str):
-                    resOfParseValue = re.sub(P_FUNCTIONS,self.funInfindObj,value)
-                    self.parsejson[key] = resOfParseValue
-                elif isinstance(value,list):
+    def fun2value(self):  # 解析函数并执行，需要先执行解析变量并执行
+        if isinstance(self.parse_obj, dict):
+            for key, value in self.parse_obj.items():
+                if isinstance(value, str):
+                    self.resOfParseValue = re.sub(P_FUNCTIONS, self.funInfindObj, value)
+                    self.parse_obj[key] = self.resOfParseValue
+                elif isinstance(value, list):
                     parselist = []
                     for e in value:
                         resOfParseValue = re.sub(P_FUNCTIONS, self.funInfindObj, str(e))
                         parselist.append(resOfParseValue)
-                    self.parsejson[key] = parselist
+                    self.parse_obj[key] = parselist
+        elif isinstance(self.parse_obj,str):
+            self.resOfParseValue = re.sub(P_FUNCTIONS, self.funInfindObj, self.parse_obj)
+            self.parse_obj = self.resOfParseValue
 
-    def funInfindObj(self,matched):
+
+    def funInfindObj(self, matched):
         self.funname = matched.group(1)
         self.strfunparams = matched.group(2)
         self.fun = getattr(functions, self.funname)
@@ -68,12 +78,12 @@ class Parse:
             return self.fun(*self.funparams)
 
 
-
 if __name__ == '__main__':
-
-    jsonobj = {"ip":"192.168.1.2","port":7000}
-    aaa = {"url":"http://${ip}:${__randInt(1,${port})}","abc":"2020-01-01"}
-    bbb = "${__randInt(a,b,c)}"
-    ccc = "2020-11-10"
-    Parse(aaa,jsonobj).run()
-    print(aaa)
+    jsonobj = [{}, {}, {'username': 'wangwei', 'password': '1111'}]
+    aaa = {'username': '${username}', 'password': '${password}'}
+    bbb = '{"username":"${username}","password":1111}'.encode("utf-8")
+    ccc = "${__randInt(a,b,c)}"
+    ddd = "2020-11-10"
+    p = Parse(bbb, *jsonobj)
+    p.run()
+    print(p.parse_obj)
